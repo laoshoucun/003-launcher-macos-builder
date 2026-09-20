@@ -23,7 +23,13 @@ jobs:
           tar -xzf source.tar.gz -C source
       - uses: dtolnay/rust-toolchain@stable
       - name: Add universal targets
-        run: rustup target add --toolchain stable aarch64-apple-darwin x86_64-apple-darwin
+        run: |
+          rustup target add --toolchain stable-aarch64-apple-darwin aarch64-apple-darwin x86_64-apple-darwin
+      - name: Verify universal targets
+        run: |
+          rustup target list --installed
+          rustup target list --installed | grep -qx 'aarch64-apple-darwin'
+          rustup target list --installed | grep -qx 'x86_64-apple-darwin'
       - name: Install dependencies
         working-directory: source
         run: corepack enable && pnpm install --frozen-lockfile
