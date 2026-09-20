@@ -1,0 +1,48 @@
+name: Build 003 macOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Decrypt source archive
+        env:
+          SOURCE_ARCHIVE_PASSWORD: ${{ secrets.SOURCE_ARCHIVE_PASSWORD }}
+        run: |
+          node decrypt-source.mjs source.tar.gz.enc source.tar.gz
+          mkdir source
+          tar -xzf source.tar.gz -C source
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Add universal targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Install dependencies
+        working-directory: source
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: Build unsigned packages
+        working-directory: source
+        run: |
+          set -euo pipefail
+          pnpm tauri build --config src-tauri/tauri.remote-package.conf.json --target universal-apple-darwin --bundles app,dmg
+          version=$(node -p "require('./package.json').version")
+          app=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name '*.app' -type d | head -1)
+          dmg=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' -type f | head -1)
+          mkdir -p release-assets
+          pkg="release-assets/003启动器-${version}-macOS-universal.pkg"
+          pkgbuild --component "$app" --install-location /Applications --identifier com.sz003.launcher.pkg --version "$version" "$pkg"
+          cp "$dmg" "release-assets/003启动器-${version}-macOS-universal.dmg"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "release-assets/003启动器-${version}-macOS-universal.zip"
+          tar -czf "release-assets/003启动器-${version}-macOS-universal.app.tar.gz" -C "$(dirname "$app")" "$(basename "$app")"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 003-launcher-macos-universal
+          path: source/release-assets/*
+          if-no-files-found: error
