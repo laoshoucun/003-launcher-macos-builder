@@ -37,6 +37,9 @@ jobs:
         working-directory: source
         run: |
           set -euo pipefail
+          rustup override set stable-aarch64-apple-darwin
+          export RUSTUP_TOOLCHAIN=stable-aarch64-apple-darwin
+          rustup target list --installed
           pnpm tauri build --config src-tauri/tauri.remote-package.conf.json --target universal-apple-darwin --bundles app,dmg
           version=$(node -p "require('./package.json').version")
           app=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name '*.app' -type d | head -1)
