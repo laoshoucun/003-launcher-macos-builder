@@ -43,12 +43,13 @@ jobs:
           export RUSTUP_TOOLCHAIN=stable-aarch64-apple-darwin
           rustup target list --installed
           pnpm tauri build --config src-tauri/tauri.remote-package.conf.json --target universal-apple-darwin --bundles app,dmg
-          version=$(node -p "require('./package.json').version")
+          version=$(node -p "require('./package.json').productVersion || require('./package.json').version")
+          native_version=$(node -p "require('./package.json').version")
           app=$(find src-tauri/target/universal-apple-darwin/release/bundle/macos -name '*.app' -type d | head -1)
           dmg=$(find src-tauri/target/universal-apple-darwin/release/bundle/dmg -name '*.dmg' -type f | head -1)
           mkdir -p release-assets
           pkg="release-assets/003启动器-${version}-macOS-universal.pkg"
-          pkgbuild --component "$app" --install-location /Applications --identifier com.sz003.launcher.pkg --version "$version" "$pkg"
+          pkgbuild --component "$app" --install-location /Applications --identifier com.sz003.launcher.pkg --version "$native_version" "$pkg"
           cp "$dmg" "release-assets/003启动器-${version}-macOS-universal.dmg"
           ditto -c -k --sequesterRsrc --keepParent "$app" "release-assets/003启动器-${version}-macOS-universal.zip"
           tar -czf "release-assets/003启动器-${version}-macOS-universal.app.tar.gz" -C "$(dirname "$app")" "$(basename "$app")"
